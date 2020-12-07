@@ -3,31 +3,46 @@ package org.itmo.bwed;
 import org.apache.commons.lang.ArrayUtils;
 import org.itmo.bwed.exceptions.IneffectiveTransromationException;
 
+import java.io.File;
 import java.time.Instant;
 import java.util.*;
 
 public class Encoder {
 
-    public static void encode(String path) {
+    private final static String ZERO_STRING_24 = "000000000000000000000000";
+    private final static String ZERO_STRING_8 = "00000000";
+    private final static String ONE_STRING_8 = "11111111";
+    private static int stringPos = 0;
+
+    public static void encode(File file) {
+        String path = file.getPath();
 //        System.out.println("File: " + path);
         Instant start = Instant.now();
 
-        char[] file = Reader.readFileToCharArray(path);
+        char[] fileCh = Reader.readFileToCharArray(path);
 //        System.out.println(Duration.between(start, Instant.now()).toMillis());
-
+        /*StringBuffer a = new StringBuffer();
+        for (int i = 0; i < file.length; i++) {
+            String b = Integer.toBinaryString(file[i]);
+            if (b.length() != 8) {
+                b = "00000000".substring(b.length()) + b;
+            }
+            a.append(b);
+        }
+        Writer.writeToFile(a.toString(), Main.ENCODED_PATH);*/
 
         //get all cycled strings
         start = Instant.now();
         char[] lastChars;
+        BWElement[] cycledStrings;
         try {
             Map<CharArray, Integer> positions = new HashMap<>();
-            BWElement[] cycledStrings = getBWTransform(file, positions);
+            cycledStrings = getBWTransform(fileCh, positions);
             lastChars = getLastCharsSortBeginnings(cycledStrings, positions);
         } catch (IneffectiveTransromationException ex) {
             System.out.println("Using light transformation algorithm...");
-            BWElement[] cycledStrings = getBWTransformLight(file);
+            cycledStrings = getBWTransformLight(fileCh);
             lastChars = getLastCharsSortFullStrings(cycledStrings);
-            int a = 3;
         }
 
 //        System.out.println(Duration.between(start, Instant.now()).toMillis());
@@ -38,9 +53,13 @@ public class Encoder {
 
         //count RLE
         System.out.println("source len: " + lastChars.length);
+        System.out.println("source string number: " + stringPos);
         getRleStatistics(lastChars);
         getBookStampStatistics(lastChars);
         System.out.println();
+
+        Writer.writeToFile(encodeBookStamp(lastChars, stringPos), Main.ENCODED_PATH + file.getName() + "_encoded");
+        Integer z = 0;
     }
 
 
@@ -129,6 +148,9 @@ public class Encoder {
         str.sort(Comparator.comparing(String::toString));
         for (int i = 0; i < cycledStrings.length; i++) {
             lastChars[i] = cycledStrings[positions.get(new CharArray(str.get(i).toCharArray()))].getLast();
+            if (cycledStrings[positions.get(new CharArray(str.get(i).toCharArray()))].getShift() == 0) {
+                stringPos = i;
+            }
         }
         return lastChars;
     }
@@ -139,6 +161,9 @@ public class Encoder {
         bwElements.sort(Comparator.comparing(BWElement::beginningToString));
         for (int i = 0; i < bwElements.size(); i++) {
             lastChars[i] = bwElements.get(i).getLast();
+            if (bwElements.get(i).getShift() == 0) {
+                stringPos = i;
+            }
         }
         return lastChars;
     }
@@ -198,10 +223,31 @@ public class Encoder {
     }
 
 
+    private static String encodeBookStamp(char[] array, int sourcePos) {
+        StringBuilder buffer = new StringBuilder("1");
+        String sourcePosStr = Integer.toBinaryString(sourcePos);
+        buffer.append(ZERO_STRING_24.substring(sourcePosStr.length()));
+        buffer.append(sourcePosStr);
+        ArrayList<Integer> bookStampSeries = getBookStampSeries(array);
+        for (Integer elem : bookStampSeries) {
+            buffer.append(getZeroBasedMonoCode(elem));
+        }
+//        ArrayList<Integer> bookStampSeries = getBookStampSeries(array);
+        if (buffer.length() % 8 != 0) {
+            buffer.append(ONE_STRING_8.substring(buffer.length() % 8));
+        }
+        return buffer.toString();
+    }
+
+
     private static void getBookStampStatistics(char[] array) {
         ArrayList<Integer> bookStampSeries = getBookStampSeries(array);
         int finalLenBits = 0;
         for (Integer bookStampSery : bookStampSeries) {
+            if (bookStampSery == 0 || bookStampSery == 1) {
+                finalLenBits += 2;
+                continue;
+            }
             finalLenBits += (Integer.toBinaryString(bookStampSery).length()) +
                     (Integer.toBinaryString(bookStampSery).length() - 1);
         }
@@ -249,7 +295,33 @@ public class Encoder {
             Arrays.fill(used, false);
         }
         return result;
-}
+    }
+
+    private static String getMonoCode(int val) {
+        if (val == 0) {
+            return "00";
+        }
+        if (val == 1) {
+            return "01";
+        }
+        StringBuilder str = new StringBuilder(ONE_STRING_8.substring(8 - Integer.toBinaryString(val).length() + 1));
+        str.append("0");
+        str.append(Integer.toBinaryString(val).substring(1));
+        return str.toString();
+    }
+
+    private static String getZeroBasedMonoCode(int val) {
+        if (val == 0) {
+            return "0";
+        }
+        if (val == 1) {
+            return "10";
+        }
+        StringBuilder str = new StringBuilder(ONE_STRING_8.substring(8 - Integer.toBinaryString(val).length()));
+        str.append("0");
+        str.append(Integer.toBinaryString(val).substring(1));
+        return str.toString();
+    }
 
     public static char[] getSubArray(char[] source, int begin, int end) {
         char[] result = new char[end - begin];

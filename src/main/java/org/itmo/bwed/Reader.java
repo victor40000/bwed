@@ -49,4 +49,14 @@ public class Reader {
             throw new RuntimeException(ex);
         }
     }
+
+    public static String readFileToBinaryString(String path) {
+        char [] file = readFileToCharArray(path);
+        StringBuilder result = new StringBuilder();
+        for (char c : file) {
+            result.append("00000000".substring(Integer.toBinaryString(c).length()));
+            result.append(Integer.toBinaryString(c));
+        }
+        return result.toString();
+    }
 }
