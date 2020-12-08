@@ -1,9 +1,7 @@
 package org.itmo.bwed;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class Decoder {
 
@@ -14,7 +12,8 @@ public class Decoder {
         int sourcePos = Integer.parseInt(source.substring(1, 25), 2);
         List<Integer> bookStampSeries = decodeBinaryString(source.substring(25));
         char[] lastChars = getLastChars(bookStampSeries);
-        char[] sourceString = getSource(lastChars, sourcePos);
+//        char[] sourceString = getSource(lastChars, sourcePos);
+        char[] sourceString = getSourceOptimized(lastChars, sourcePos);
         writeToFile(sourceString, Main.DECODED_PATH + file.getName() + "_decoded");
     }
 
@@ -24,7 +23,9 @@ public class Decoder {
         for (int i = 0; i < chars.length; i++) {
             if (chars[i] == '0') {
                 result.add(0);
-            } else if (chars[i] == '1' && chars[i + 1] == '0') {
+            } else if (chars[i] == '1' && i + 1 == chars.length) {
+                return result;
+            } else if (chars[i] == '1' && i + 1 != chars.length && chars[i + 1] == '0') {
                 result.add(1);
                 i++;
             } else {
@@ -67,6 +68,49 @@ public class Decoder {
             Arrays.fill(used, false);
         }
         return getSubArray(result, 256, bookStampSeries.size() + 256);
+    }
+
+    private static char[] getSourceOptimized(char[] lastChars, int sourcePos) {
+        Map<Character, List<Integer>> positions = new HashMap<>();
+        for (int i = 0; i < lastChars.length; i++) {
+            if (positions.get(lastChars[i]) == null) {
+                List<Integer> lst = new ArrayList<>();
+                lst.add(i);
+                positions.put(lastChars[i], lst);
+                continue;
+            }
+            positions.get(lastChars[i]).add(i);
+        }
+
+        char[] firstChars = Arrays.copyOf(lastChars, lastChars.length);
+        Arrays.sort(firstChars);
+        char[] result = new char[lastChars.length];
+        int currPos = sourcePos;
+        int counter = 0;
+        while (counter < lastChars.length) {
+            result[counter] = firstChars[currPos];
+            int targetNumber = 0;
+            char target = firstChars[currPos];
+            int i = 0;
+            while (currPos - i >= 0) {
+                if (target == firstChars[currPos - i]) {
+                    targetNumber++;
+                } else {
+                    break;
+                }
+                i++;
+            }
+            /*while (targetNumber != 0) {
+                if (lastChars[i] == target) {
+                    targetNumber--;
+                }
+                i++;
+            }*/
+
+            currPos = positions.get(target).get(targetNumber - 1);
+            counter++;
+        }
+        return result;
     }
 
     private static char[] getSource(char[] lastChars, int sourcePos) {
