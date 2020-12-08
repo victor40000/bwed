@@ -1,7 +1,11 @@
 package org.itmo.bwed;
 
+import java.util.Comparator;
+
 //Element of array used for Burrows–Wheeler transform
-public class BWElement {
+public class BWElement implements Comparable<BWElement> {
+
+    public static final int COMPARISON_SHIFT = 1000;
 
     public BWElement() {
     }
@@ -30,6 +34,31 @@ public class BWElement {
 
     public String beginningToString() {
         return file.substring(shift) + file.substring(0, shift);
+    }
+
+    @Override
+    public int compareTo(BWElement o) {
+        String s1 = "";
+        String s2 = "";
+        int currentShift = COMPARISON_SHIFT;
+        int shift2 = o.getShift();
+        while(currentShift < file.length()) {
+            if (shift + currentShift < file.length()) {
+                s1 = (file.substring(shift, shift + currentShift));
+            } else {
+                s1 = (file.substring(shift) + file.substring(0, shift + currentShift - file.length()));
+            }
+            if (shift2 + currentShift < file.length()) {
+                s2 = (file.substring(shift2, shift2 + currentShift));
+            } else {
+                s2 = (file.substring(shift2) + file.substring(0, shift2 + currentShift - file.length()));
+            }
+            currentShift += COMPARISON_SHIFT;
+            if (s1.compareTo(s2) != 0) {
+                return s1.compareTo(s2);
+            }
+        }
+        return beginningToString().compareTo(o.beginningToString());
     }
 
     public char getFirst() {

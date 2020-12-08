@@ -38,7 +38,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>com.itmo.lz77.Main</mainClass>
+                            <mainClass>org.itmo.bwed.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -15,14 +15,19 @@ public class Main {
     public static final String DECODED_PATH = "decoded/";
 
     public static void main(String[] args) {
-        File pic = new File("D:/ИТМО new/теоринф/calgarycorpus/pic");
-        File test = new File("D:/ИТМО new/теоринф/calgarycorpus/test");
+        boolean memEff = false;
+        for (String arg: args) {
+            if (arg.equals("-memeff")) {
+                memEff = true;
+                break;
+            }
+        }
         File folder = new File(TO_ENCODE);
         System.out.println("Encoding:");
         for (final File fileEntry : Objects.requireNonNull(folder.listFiles())) {
             if (!fileEntry.isDirectory()) {
                 System.out.println(fileEntry.getName());
-                Encoder.encode(fileEntry);
+                Encoder.encode(fileEntry, memEff);
             }
         }
 

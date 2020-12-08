@@ -4,6 +4,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.itmo.bwed.exceptions.IneffectiveTransromationException;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
@@ -14,52 +15,39 @@ public class Encoder {
     private final static String ONE_STRING_8 = "11111111";
     private static int stringPos = 0;
 
-    public static void encode(File file) {
+    public static void encode(File file, boolean memEffective) {
         String path = file.getPath();
-//        System.out.println("File: " + path);
-        Instant start = Instant.now();
+        Instant start;
 
         char[] fileCh = Reader.readFileToCharArray(path);
-//        System.out.println(Duration.between(start, Instant.now()).toMillis());
-        /*StringBuffer a = new StringBuffer();
-        for (int i = 0; i < file.length; i++) {
-            String b = Integer.toBinaryString(file[i]);
-            if (b.length() != 8) {
-                b = "00000000".substring(b.length()) + b;
-            }
-            a.append(b);
-        }
-        Writer.writeToFile(a.toString(), Main.ENCODED_PATH);*/
-
-        //get all cycled strings
-        start = Instant.now();
         char[] lastChars;
         BWElement[] cycledStrings;
-        try {
-            Map<CharArray, Integer> positions = new HashMap<>();
-            cycledStrings = getBWTransform(fileCh, positions);
-            lastChars = getLastCharsSortBeginnings(cycledStrings, positions);
-        } catch (IneffectiveTransromationException ex) {
-            System.out.println("Using light transformation algorithm...");
+        start = Instant.now();
+        if (memEffective) {
+            System.out.println("Using memory effective algorithm...");
             cycledStrings = getBWTransformLight(fileCh);
-            lastChars = getLastCharsSortFullStrings(cycledStrings);
+            lastChars = getLastCharsSortFullStringsOptimized(cycledStrings);
+        } else {
+            try {
+                Map<CharArray, Integer> positions = new HashMap<>();
+                cycledStrings = getBWTransform(fileCh, positions);
+                lastChars = getLastCharsSortBeginnings(cycledStrings, positions);
+            } catch (IneffectiveTransromationException ex) {
+                System.out.println("Using memory effective algorithm...");
+                cycledStrings = getBWTransformLight(fileCh);
+                lastChars = getLastCharsSortFullStringsOptimized(cycledStrings);
+            }
         }
-
-//        System.out.println(Duration.between(start, Instant.now()).toMillis());
-
-
-//        char[] lastCharsCust = getLastCharsCustomSort(cycledStrings);
-//        System.out.println(Duration.between(start, Instant.now()).toMillis());
+        System.out.println(Duration.between(start, Instant.now()).toMillis() + "ms spent for BW transform and sorting");
 
         //count RLE
-        System.out.println("source len: " + lastChars.length);
-        System.out.println("source string number: " + stringPos);
-        getRleStatistics(lastChars);
-        getBookStampStatistics(lastChars);
+//        System.out.println("source len: " + lastChars.length);
+//        System.out.println("source string number: " + stringPos);
+//        getRleStatistics(lastChars);
+//        getBookStampStatistics(lastChars);
         System.out.println();
 
         Writer.writeToFile(encodeBookStamp(lastChars, stringPos), Main.ENCODED_PATH + file.getName() + "_encoded");
-        Integer z = 0;
     }
 
 
@@ -168,6 +156,18 @@ public class Encoder {
         return lastChars;
     }
 
+    private static char[] getLastCharsSortFullStringsOptimized(BWElement[] cycledStrings) {
+        char[] lastChars = new char[cycledStrings.length];
+        List<BWElement> bwElements = new ArrayList<>(Arrays.asList(cycledStrings));
+        Collections.sort(bwElements);
+        for (int i = 0; i < bwElements.size(); i++) {
+            lastChars[i] = bwElements.get(i).getLast();
+            if (bwElements.get(i).getShift() == 0) {
+                stringPos = i;
+            }
+        }
+        return lastChars;
+    }
 
     private static void getRleStatistics(char[] lastChars) {
         ArrayList<Integer> rleSeries = getRleSeries(lastChars);
