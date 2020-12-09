@@ -5,16 +5,15 @@ import java.util.*;
 
 public class Decoder {
 
-    public static void decode(File file) {
+    public static char[] decode(File file) {
         String path = file.getPath();
         String source = Reader.readFileToBinaryString(path);
-        boolean isBookStampUsed = source.charAt(0) == '1';
-        int sourcePos = Integer.parseInt(source.substring(1, 25), 2);
-        List<Integer> bookStampSeries = decodeBinaryString(source.substring(25));
+//        boolean isBookStampUsed = source.charAt(0) == '1';
+        int sourcePos = Integer.parseInt(source.substring(0, 24), 2);
+        List<Integer> bookStampSeries = decodeBinaryString(source.substring(24));
         char[] lastChars = getLastChars(bookStampSeries);
 //        char[] sourceString = getSource(lastChars, sourcePos);
-        char[] sourceString = getSourceOptimized(lastChars, sourcePos);
-        writeToFile(sourceString, Main.DECODED_PATH + file.getName() + "_decoded");
+        return getSourceOptimized(lastChars, sourcePos);
     }
 
     private static List<Integer> decodeBinaryString(String source) {
@@ -145,15 +144,6 @@ public class Decoder {
             counter++;
         }
         return result;
-    }
-
-    public static void writeToFile(char[] target, String path) {
-        StringBuilder buffer = new StringBuilder();
-        for (char c: target) {
-            buffer.append("00000000".substring(Integer.toBinaryString(c).length()));
-            buffer.append(Integer.toBinaryString(c));
-        }
-        Writer.writeToFile(buffer.toString(), path);
     }
 
     public static char[] getSubArray(char[] source, int begin, int end) {

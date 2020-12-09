@@ -18,4 +18,13 @@ public class Writer {
         }
     }
 
+    public static void writeToFile(char[] target, String path) {
+        StringBuilder buffer = new StringBuilder();
+        for (char c: target) {
+            buffer.append("00000000".substring(Integer.toBinaryString(c).length()));
+            buffer.append(Integer.toBinaryString(c));
+        }
+        writeToFile(buffer.toString(), path);
+    }
+
 }

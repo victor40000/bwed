@@ -1,7 +1,5 @@
 package org.itmo.bwed;
 
-import java.util.Comparator;
-
 //Element of array used for Burrows–Wheeler transform
 public class BWElement implements Comparable<BWElement> {
 
@@ -32,7 +30,7 @@ public class BWElement implements Comparable<BWElement> {
 
     private String file;
 
-    public String beginningToString() {
+    public String getFullString() {
         return file.substring(shift) + file.substring(0, shift);
     }
 
@@ -58,7 +56,7 @@ public class BWElement implements Comparable<BWElement> {
                 return s1.compareTo(s2);
             }
         }
-        return beginningToString().compareTo(o.beginningToString());
+        return getFullString().compareTo(o.getFullString());
     }
 
     public char getFirst() {

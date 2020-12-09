@@ -16,10 +16,13 @@ public class Main {
 
     public static void main(String[] args) {
         boolean memEff = false;
+        boolean entropy = false;
         for (String arg: args) {
             if (arg.equals("-memeff")) {
                 memEff = true;
-                break;
+            }
+            if (arg.equals("-ent")) {
+                entropy = true;
             }
         }
         File folder = new File(TO_ENCODE);
@@ -27,7 +30,12 @@ public class Main {
         for (final File fileEntry : Objects.requireNonNull(folder.listFiles())) {
             if (!fileEntry.isDirectory()) {
                 System.out.println(fileEntry.getName());
-                Encoder.encode(fileEntry, memEff);
+                char[] fileCh = Reader.readFileToCharArray(fileEntry.getPath());
+                if (entropy) {
+                    EntropyCalculator.printEntropy(fileCh);
+                }
+                String result = Encoder.encode(fileCh, memEff);
+                Writer.writeToFile(result, Main.ENCODED_PATH + fileEntry.getName() + "_encoded");
             }
         }
 
@@ -37,7 +45,8 @@ public class Main {
         for (final File fileEntry : Objects.requireNonNull(folder.listFiles())) {
             if (!fileEntry.isDirectory()) {
                 System.out.println(fileEntry.getName());
-                Decoder.decode(fileEntry);
+                char[] source = Decoder.decode(fileEntry);
+                Writer.writeToFile(source, Main.DECODED_PATH + fileEntry.getName() + "_decoded");
             }
         }
 //        Decoder.decode(new File(ENCODED_PATH));

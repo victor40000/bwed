@@ -3,7 +3,6 @@ package org.itmo.bwed;
 import org.apache.commons.lang.ArrayUtils;
 import org.itmo.bwed.exceptions.IneffectiveTransromationException;
 
-import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -15,11 +14,8 @@ public class Encoder {
     private final static String ONE_STRING_8 = "11111111";
     private static int stringPos = 0;
 
-    public static void encode(File file, boolean memEffective) {
-        String path = file.getPath();
+    public static String encode(char[] fileCh, boolean memEffective) {
         Instant start;
-
-        char[] fileCh = Reader.readFileToCharArray(path);
         char[] lastChars;
         BWElement[] cycledStrings;
         start = Instant.now();
@@ -45,9 +41,16 @@ public class Encoder {
 //        System.out.println("source string number: " + stringPos);
 //        getRleStatistics(lastChars);
 //        getBookStampStatistics(lastChars);
-        System.out.println();
+        start = Instant.now();
+        String result = encodeBookStamp(lastChars, stringPos);
+        System.out.println(Duration.between(start, Instant.now()).toMillis() + "ms spent for encoding with Bookstamp algorithm");
+        System.out.println("source len: " + lastChars.length);
+        getRleStatistics(lastChars);
+        System.out.println("Bookstamp len: " + result.length() / 8);
+        System.out.println("Cost (bit/char): " + (double) result.length() / lastChars.length);
 
-        Writer.writeToFile(encodeBookStamp(lastChars, stringPos), Main.ENCODED_PATH + file.getName() + "_encoded");
+        System.out.println();
+        return result;
     }
 
 
@@ -146,7 +149,7 @@ public class Encoder {
     private static char[] getLastCharsSortFullStrings(BWElement[] cycledStrings) {
         char[] lastChars = new char[cycledStrings.length];
         List<BWElement> bwElements = new ArrayList<>(Arrays.asList(cycledStrings));
-        bwElements.sort(Comparator.comparing(BWElement::beginningToString));
+        bwElements.sort(Comparator.comparing(BWElement::getFullString));
         for (int i = 0; i < bwElements.size(); i++) {
             lastChars[i] = bwElements.get(i).getLast();
             if (bwElements.get(i).getShift() == 0) {
@@ -224,7 +227,7 @@ public class Encoder {
 
 
     private static String encodeBookStamp(char[] array, int sourcePos) {
-        StringBuilder buffer = new StringBuilder("1");
+        StringBuilder buffer = new StringBuilder();
         String sourcePosStr = Integer.toBinaryString(sourcePos);
         buffer.append(ZERO_STRING_24.substring(sourcePosStr.length()));
         buffer.append(sourcePosStr);
@@ -232,7 +235,6 @@ public class Encoder {
         for (Integer elem : bookStampSeries) {
             buffer.append(getZeroBasedMonoCode(elem));
         }
-//        ArrayList<Integer> bookStampSeries = getBookStampSeries(array);
         if (buffer.length() % 8 != 0) {
             buffer.append(ONE_STRING_8.substring(buffer.length() % 8));
         }
